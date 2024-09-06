@@ -33,7 +33,7 @@ function CompetitionList({ projects, resultsVisible, user }) {
                                             {/* Kullanıcının verdiği ağırlıklı ortalama puanı göster */}
                                             <p>
                                                 <strong>Verdiğiniz Ağırlıklı Ortalama Puan:</strong> 
-                                                project.votes[user.name].weightedScore
+                                                {project.votes[user.name].weightedScore}
                                             </p>
                                         </div>
                                     ) : (

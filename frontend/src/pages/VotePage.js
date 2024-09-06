@@ -82,13 +82,15 @@ function VotePage() {
             {/* Jüri üyesi uyarısı göster */}
             {isJury && <p className="jury-info">Jüri üyesi olarak atandınız. Oylarınız {juryVoteCoefficient} katı değerindedir.</p>}
 
-            {/* Oylama işlemi (eklemeler yapıldı) */}
+            {/* Oylama işlemi (eklemeler yapıldı!) */}
             <div className="likert-container">
                 {competition.criteria.map((criterion, index) => (
                     <div key={index} className="likert-item" style={{ marginBottom: '15px' }}>
-                        <label>{criterion.name} (Katsayı: {criterion.coefficient}):</label>
-                        {/* Criterion description is now below the criterion name */}
-                        <p style={{ marginTop: '5px', fontStyle: 'italic' }}>{criterion.description}</p>
+                        <div>
+                            <label>{criterion.name} (Katsayı: {criterion.coefficient})</label>
+                            {/* Kriter açıklaması */}
+                            <p style={{ marginTop: '5px', marginBottom: '10px' }}>{criterion.description}</p>
+                        </div>
                         <div className="likert-buttons">
                             {[1, 2, 3, 4, 5].map((score) => (
                                 <button
@@ -102,7 +104,7 @@ function VotePage() {
                     </div>
                 ))}
             </div>
-
+            
             {/* Textarea for comments */}
             <div style={{ marginTop: '15px' }}>
                 <label>Yorum Bırakın:</label>
