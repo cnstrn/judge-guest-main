@@ -1,0 +1,189 @@
+/* General styles for the whole app */
+body, html {
+    margin: 0;
+    padding: 0;
+    font-family: Arial, sans-serif;
+    background-color: #f0f2f5;
+    color: #191818; /* Updated to black */
+    height: 100%;
+}
+
+.container {
+    max-width: 800px;
+    margin: 20px auto;
+    padding: 20px;
+    background-color: #ffffff; /* Updated to white */
+    border-radius: 8px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+/* Header styles */
+h1, h2, h3 {
+    color: #09386b; /* Updated to dark blue */
+    margin-bottom: 20px;
+    text-align: center;
+}
+
+/* Form and input styles */
+form {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+label {
+    margin-bottom: 8px;
+    font-weight: bold;
+}
+
+input, select, textarea {
+    padding: 10px;
+    border-radius: 4px;
+    border: 1px solid #ccc;
+    margin-bottom: 10px;
+    font-size: 16px;
+    width: 100%;
+    background-color: #ffffff; /* Updated to white */
+}
+
+textarea {
+    height: 100px;
+    resize: none;
+}
+
+/* Button styles */
+button {
+    padding: 10px 20px;
+    background-color: #bb0834; /* Updated to red */
+    color: #fff;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 16px;
+    transition: background-color 0.3s;
+    margin-top: 10px;
+}
+
+button:disabled {
+    background-color: #ccc;
+    cursor: not-allowed;
+}
+
+button:hover:enabled {
+    background-color: #09386b; /* Updated to dark blue */
+}
+
+/* Styles for cards */
+.card-container {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 20px;
+}
+
+.card {
+    background-color:#ebebeb; /* Updated to white */
+    border-color: #bb0834;
+    border-radius: 8px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    padding: 20px;
+    width: calc(50% - 10px);
+    box-sizing: border-box;
+}
+
+.card-content {
+    margin-bottom: 20px;
+}
+
+.card-actions {
+    text-align: right;
+}
+
+.card.highlight {
+    background-color: #f3f045; /* Updated to yellow */
+}
+
+
+/* Styles for Likert scale */
+.likert-container {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+.likert-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.likert-buttons {
+    display: flex;
+    gap: 10px;
+}
+
+.likert-buttons button {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background-color: #f0f2f5;
+    color: #191818; /* Updated to black */
+    font-size: 16px;
+    border: 2px solid transparent;
+    transition: all 0.2s ease-in-out;
+}
+
+.likert-buttons button:hover {
+    background-color: #09386b; /* Updated to dark blue */
+    color: #fff;
+}
+
+.likert-buttons button.selected {
+    background-color: #09386b; /* Updated to dark blue */
+    color: #fff;
+    border-color: #0056b3;
+}
+
+/* Additional styles for lists */
+ul {
+    list-style: none;
+    padding: 0;
+}
+
+li {
+    padding: 10px;
+    background-color: #f9f9f9;
+    border: 1px solid #cfcece;
+    border-radius: 4px;
+    margin-bottom: 10px;
+}
+
+/* QR Section Styling */
+.qr-section {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin-bottom: 30px;
+    padding: 20px;
+    border: 2px solid #09386b; /* Updated to dark blue */
+    border-radius: 8px;
+    background-color: #f8f9fa;
+}
+
+.competition-code {
+    font-size: 1.5em;
+    margin-bottom: 15px;
+    color: #09386b; /* Updated to dark blue */
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+    .card {
+        width: 100%;
+    }
+
+    .likert-buttons button {
+        width: 35px;
+        height: 35px;
+        font-size: 14px;
+    }
+}

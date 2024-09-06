@@ -1,0 +1,69 @@
+-- public.contests definition
+
+-- Drop table
+
+-- DROP TABLE public.contests;
+
+CREATE TABLE public.contests (
+	"name" varchar NOT NULL,
+	id int4 NOT NULL,
+	created_by varchar NOT NULL,
+	"date" date NOT NULL,
+	description varchar NOT NULL,
+	criteria _text NOT NULL,
+	members _int4 NULL,
+	jury _int4 NULL,
+	CONSTRAINT contests_pk PRIMARY KEY (id)
+);
+
+
+-- public.users definition
+
+-- Drop table
+
+-- DROP TABLE public.users;
+
+CREATE TABLE public.users (
+	"name" varchar NOT NULL,
+	email varchar NOT NULL,
+	"password" varchar NOT NULL,
+	"role" public."role_status" DEFAULT 'null'::role_status NULL,
+	userid int4 GENERATED ALWAYS AS IDENTITY( INCREMENT BY 1 MINVALUE 1 MAXVALUE 2147483647 START 1 CACHE 1 NO CYCLE) NOT NULL,
+	role_requested public."role_status" NULL,
+	CONSTRAINT users_pk PRIMARY KEY (userid)
+);
+
+
+-- public.projects definition
+
+-- Drop table
+
+-- DROP TABLE public.projects;
+
+CREATE TABLE public.projects (
+	"name" varchar NOT NULL,
+	id int2 NOT NULL,
+	contest int4 NOT NULL,
+	team _int4 NOT NULL,
+	points float4 NULL,
+	CONSTRAINT projects_unique UNIQUE (id),
+	CONSTRAINT projects_contests_fk FOREIGN KEY (contest) REFERENCES public.contests(id)
+);
+
+
+-- public.votes definition
+
+-- Drop table
+
+-- DROP TABLE public.votes;
+
+CREATE TABLE public.votes (
+	"user" int4 NOT NULL,
+	contest int4 NOT NULL,
+	project int2 NOT NULL,
+	likert _int2 NULL,
+	"comment" varchar NULL,
+	CONSTRAINT votes_contests_fk FOREIGN KEY (contest) REFERENCES public.contests(id),
+	CONSTRAINT votes_projects_fk FOREIGN KEY (project) REFERENCES public.projects(id),
+	CONSTRAINT votes_users_fk FOREIGN KEY ("user") REFERENCES public.users(userid)
+);
