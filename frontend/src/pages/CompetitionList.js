@@ -9,8 +9,8 @@ function CompetitionList({
     newProjectName, setNewProjectName,
     newProjectDescription, setNewProjectDescription,
     addProject
-}) 
-{
+}) {
+
     const handleCriterionChange = (index, value) => {
         const updatedCriteria = [...criteria];
         updatedCriteria[index] = value;

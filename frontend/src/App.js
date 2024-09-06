@@ -14,6 +14,7 @@ function App() {
             <Route path="/lobby" element={<LobbyPage />} />
             <Route path="/create-competition" element={<CreateCompetitionPage />} />
             <Route path="/competition/:competitionId" element={<CompetitionPage />} />
+            <Route path="/nickname-entry/:competitionId" element={<NicknameEntryPage />} />
             <Route path="/competition/:competitionId/vote/:projectId" element={<VotePage />} />
             <Route path="/signUp" element={<SignUpPage />} />
             <Route path="/logIn" element={<LoginPage />} />  {/* Wildcard route moved to the bottom */}

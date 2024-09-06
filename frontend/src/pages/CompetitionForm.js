@@ -6,7 +6,7 @@ function CompetitionForm({
     competitionDate, setCompetitionDate,
     criteria, setCriteria,
     projects, setProjects,
-    juryVoteCoefficient, setJuryVoteCoefficient // Juri katsayisi atama
+    juryVoteCoefficient, setJuryVoteCoefficient // Add jury vote coefficient state
 }) {
     const [newCriterion, setNewCriterion] = useState('');
     const [newProjectName, setNewProjectName] = useState('');
@@ -38,7 +38,6 @@ function CompetitionForm({
 
     return (
         <div>
-            {/* Yarisma adi belirleme */}
             <div style={{ marginBottom: '15px' }}>
                 <label>Yarışma Adı:</label>
                 <input
@@ -47,8 +46,6 @@ function CompetitionForm({
                     onChange={(e) => setCompetitionName(e.target.value)}
                 />
             </div>
-
-            {/* Yarisma tarihi belirleme */}
             <div style={{ marginBottom: '15px' }}>
                 <label>Yarışma Tarihi:</label>
                 <input
@@ -58,7 +55,7 @@ function CompetitionForm({
                 />
             </div>
 
-            {/* Juri oy katsayısı belirleme */}
+            {/* Jury Vote Coefficient Section */}
             <div style={{ marginBottom: '15px' }}>
                 <label>Jüri Oy Katsayısı:</label>
                 <input

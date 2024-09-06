@@ -2,44 +2,47 @@ import React, { useState, useEffect, useContext } from 'react';
 import { useParams, useLocation, useNavigate } from 'react-router-dom';
 import { io } from 'socket.io-client';
 import { UserContext } from '../UserContext';
+import config from '../config';
 import './styles.css';
 
-// Backend sunucusuyla bağlantıyı başlatma
-const socket = io('http://localhost:5000');
+// Initialize socket connection to backend
+const socket = io(`${config.backendURL}`);
 
 function VotePage() {
-    const { competitionId, projectId } = useParams(); 
-    const location = useLocation(); 
-    const navigate = useNavigate(); 
-    const { user } = useContext(UserContext); 
+    const { competitionId, projectId } = useParams(); // Get competition and project IDs from URL params
+    const location = useLocation(); // Get passed state (juryMembers and juryVoteCoefficient)
+    const navigate = useNavigate(); // To navigate to other pages
+    const { user } = useContext(UserContext); // Get user info from context
 
-    const [competition, setCompetition] = useState(null); // Yarışma verileri
-    const [votes, setVotes] = useState({}); // Her kriter için oy verileri
-    const [isJury, setIsJury] = useState(false); // Kullanıcının jüri üyesi olup olmadığını kontrol et
-    const [comment, setComment] = useState(''); // Kullanıcının proje için yorumu
-    const juryVoteCoefficient = location.state.juryVoteCoefficient || 2; // Jüri katsayısını al ya da varsayılan olarak 2 kullan
+    const [competition, setCompetition] = useState(null); // Competition data
+    const [votes, setVotes] = useState({}); // Vote data for each criterion
+    const [isJury, setIsJury] = useState(false); // Is the user a jury member?
+    const [comment, setComment] = useState(''); // User's comment for the project
+    const juryVoteCoefficient = location.state.juryVoteCoefficient || 2;  // Get jury coefficient or use default 2
 
-    // Yarışma verilerini al ve kullanıcının jüri üyesi olup olmadığını kontrol et
+    // Fetch competition data and check if user is a jury member
     useEffect(() => {
         if (!user.name) {
-            navigate('/'); // Kullanıcı adı yoksa ana sayfaya yönlendirme
+            navigate('/'); // If no user name, redirect to home
             return;
         }
 
-        // Sunucudan yarışma verilerini talep etme
+        // Request competition data from the server
         socket.emit('requestCompetitionData', { competitionId });
 
+        // Listen for competition data from the server
         socket.on('competitionData', (data) => {
             setCompetition(data);
-            setIsJury(location.state.juryMembers.includes(user.name)); // Kullanıcının jüri üyesi olup olmadığını kontrol etme
+            setIsJury(location.state.juryMembers.includes(user.name)); // Check if user is a jury member
         });
 
+        // Clean up event listener on component unmount
         return () => {
             socket.off('competitionData');
         };
     }, [competitionId, user.name, location.state.juryMembers, navigate]);
 
-    // Her kriter için verilen oyu işle.
+    // Handle vote changes for each criterion
     const handleVoteChange = (criterion, score) => {
         setVotes((prevVotes) => ({
             ...prevVotes,
@@ -47,31 +50,28 @@ function VotePage() {
         }));
     };
 
-    // Oyları sunucuya gönderme
+    // Handle submitting votes to the server
+    // Oyları sunucuya gönderme işlemi
     const submitVotes = () => {
-        const totalScore = Object.values(votes).reduce((sum, score) => sum + score, 0); // Toplam puanı hesapla
-        const averageScore = totalScore / Object.keys(votes).length; // Ortalama puanı hesapla
+    // Criteria ve vote bilgilerini ayrı ayrı gönderiyoruz
+    socket.emit('submitVotes', {
+        competitionId,
+        projectId,
+        userName: user.name,
+        comment: comment.trim(),
+        votes: votes // her kriter ve oylama burada gönderiliyor
+    });
 
-        // Kullanıcı jüri üyesiyse jüri katsayısını uygulama
-        const finalScore = isJury ? averageScore * juryVoteCoefficient : averageScore;
+    // Yarışma sayfasına geri yönlendir
+    navigate(`/competition/${competitionId}`);
+};
 
-        // Oyları sunucuya gönderme
-        socket.emit('submitVotes', {
-            competitionId,
-            projectId,
-            finalScore,
-            userName: user.name,
-            comment: comment.trim(),
-        });
-
-        // Yarışma sayfasına geri yönlendirme
-        navigate(`/competition/${competitionId}`);
-    };
-
+    // Show loading message if competition data is not yet available
     if (!competition) {
         return <div>Yükleniyor...</div>;
     }
 
+    // Find the project by projectId
     const project = competition.projects.find(p => p.id === projectId);
     if (!project) {
         return <div>Proje bulunamadı.</div>;
@@ -81,10 +81,10 @@ function VotePage() {
         <div className="container">
             <h2>{project.name} için Oy Verin</h2>
 
-            {/* Kullanıcı jüri üyesiyse bir uyarı mesajı gösterme */}
+            {/* Display a jury warning if the user is a jury member */}
             {isJury && <p className="jury-info">Jüri üyesi olarak atandınız. Oylarınız {juryVoteCoefficient} katı değerindedir.</p>}
 
-            {/* Oy verme seçeneklerini göster */}
+            {/* Display voting options */}
             <div className="likert-container">
                 {competition.criteria.map((criterion, index) => (
                     <div key={index} className="likert-item" style={{ marginBottom: '15px' }}>
@@ -103,7 +103,7 @@ function VotePage() {
                 ))}
             </div>
 
-            {/* Yorumlar için textarea */}
+            {/* Textarea for comments */}
             <div style={{ marginTop: '15px' }}>
                 <label>Yorum Bırakın:</label>
                 <textarea
@@ -113,7 +113,7 @@ function VotePage() {
                 />
             </div>
 
-            {/* Oyları gönderme butonu */}
+            {/* Submit votes button */}
             <button onClick={submitVotes} style={{ width: '100%', marginTop: '20px' }}>
                 Oyları Gönder
             </button>
