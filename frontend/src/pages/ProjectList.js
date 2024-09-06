@@ -10,7 +10,6 @@ function ProjectList({
     juryVoteCoefficient,
     navigate
 }) {
-    // Projeleri ortalama puana göre sıralanması
     const sortedProjects = resultsVisible
         ? [...projects].sort((a, b) => b.averageScore - a.averageScore)
         : projects;
@@ -26,42 +25,72 @@ function ProjectList({
                             <p>{project.description}</p>
 
                             {resultsVisible ? (
-                                <>
-                                    {/* Sonuçlar görünüyorsa projelerin ortalama puanını ve kullanıcının kendi puanını gösterme */}
-                                    <p>Ortalama Puan: {project.averageScore.toFixed(2)}</p>
-                                    <p>Kendi Puanınız: {project.votes[user.name] || 'Puan verilmedi'}</p>
-                                    {(user.role === 'admin' || user.role === 'member') && (
-                                        <div>
-                                            <h4>Kullanıcı Yorumları:</h4>
-                                            {project.comments.length > 0 ? (
-                                                <ul>
-                                                    {/* Yorumları gösterme */}
-                                                    {project.comments.map((comment, idx) => (
-                                                        <li key={idx}>
-                                                            <strong>{comment.userName}:</strong> {comment.comment}
-                                                        </li>
-                                                    ))}
-                                                </ul>
-                                            ) : (
-                                                <p>Yorum bulunamadı.</p>
-                                            )}
-                                        </div>
-                                    )}
-                                </>
-                            ) : (
-                                // Sonuçlar görünmüyorsa sadece kullanıcının puanını göster
-                                <p>Verdiğiniz Puan: {project.votes[user.name] || 'Puan verilmedi'}</p>
-                            )}
+    <>
+        <p>Ortalama Puan: {project.averageScore.toFixed(2)}</p>
+
+        {/* Kendi Puanlarınızı ve ortalama puanınızı hesaplayıp gösterme */}
+        {project.votes[user.name] && typeof project.votes[user.name] === 'object' ? (
+            <div>
+                <h4>Kendi Puanlarınız:</h4>
+                {Object.entries(project.votes[user.name]).map(([criterion, score]) => (
+                    <p key={criterion}>{criterion}: {score}</p>
+                ))}
+                
+                {/* Calculate and show the average score given by the user */}
+                <p><strong>Verdiğiniz Ortalama Puan:</strong> {(
+                    Object.values(project.votes[user.name]).reduce((sum, score) => sum + score, 0) / 
+                    Object.values(project.votes[user.name]).length
+                ).toFixed(2)}</p>
+            </div>
+        ) : (
+            <p>Kendi Puanınız: {project.votes[user.name] || 'Puan verilmedi'}</p>
+        )}
+
+        {(user.role === 'admin' || user.role === 'member') && (
+            <div>
+                <h4>Kullanıcı Yorumları:</h4>
+                {project.comments.length > 0 ? (
+                    <ul>
+                        {project.comments.map((comment, idx) => (
+                            <li key={idx}>
+                                <strong>{comment.userName}:</strong> {comment.comment}
+                            </li>
+                        ))}
+                    </ul>
+                ) : (
+                    <p>Yorum bulunamadı.</p>
+                )}
+            </div>
+        )}
+    </>
+) : (
+    /* Verdiğiniz Puan kısmı da güncelleniyor */
+    project.votes[user.name] && typeof project.votes[user.name] === 'object' ? (
+        <div>
+            <h4>Verdiğiniz Puanlar:</h4>
+            {Object.entries(project.votes[user.name]).map(([criterion, score]) => (
+                <p key={criterion}>{criterion}: {score}</p>
+            ))}
+            
+            {/* Calculate and show the average score given by the user */}
+            <p><strong>Verdiğiniz Ortalama Puan:</strong> {(
+                Object.values(project.votes[user.name]).reduce((sum, score) => sum + score, 0) / 
+                Object.values(project.votes[user.name]).length
+            ).toFixed(2)}</p>
+        </div>
+    ) : (
+        <p>Verdiğiniz Puan: {project.votes[user.name] || 'Puan verilmedi'}</p>
+    )
+)}
+
                         </div>
                         <div className="card-actions" style={{ marginTop: '15px' }}>
                             <button
-                                // VotePage'e yönlendirme
                                 onClick={() => navigate(`/competition/${competitionId}/vote/${project.id}`, { state: { juryMembers, juryVoteCoefficient } })}
                                 disabled={!votingStarted || project.votes[user.name]}
                             >
                                 {project.votes[user.name] ? 'Oy Kullanıldı' : 'Oy Ver'}
                             </button>
-                            {/* Kullanıcı oy verdiyse bilgilendirme */}
                             {project.votes[user.name] && <p style={{ marginTop: '10px' }}>Bu projeye zaten oy verdiniz.</p>}
                         </div>
                     </div>
