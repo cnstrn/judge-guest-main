@@ -11,38 +11,53 @@ import './styles.css';
 const socket = io(`${config.backendURL}`);
 
 function CompetitionPage() {
-    const { competitionId } = useParams();
+    const { competitionId } = useParams(); // URL'den yarışma ID'si alınıyor
     const navigate = useNavigate();
     const { user, setUser } = useContext(UserContext);
 
-    const [competition, setCompetition] = useState(null);
-    const [username, setUsername] = useState(user.name || '');
-    const [votingStarted, setVotingStarted] = useState(false);
-    const [votingFinished, setVotingFinished] = useState(false);
-    const [resultsVisible, setResultsVisible] = useState(false);
-    const [juryMembers, setJuryMembers] = useState([]);
-    const [juryVoteCoefficient, setJuryVoteCoefficient] = useState(2); // Default jury vote coefficient
+    const [competition, setCompetition] = useState(null); // Yarışma bilgilerini tutan state
+    const [username, setUsername] = useState(user.name || ''); // Kullanıcı adını tutan state
+    const [votingStarted, setVotingStarted] = useState(false); // Oylamanın başlayıp başlamadığını tutan state
+    const [votingFinished, setVotingFinished] = useState(false); // Oylamanın bitip bitmediğini tutan state
+    const [resultsVisible, setResultsVisible] = useState(false); // Sonuçların görünürlüğünü tutan state
+    const [winningProject, setWinningProject] = useState(null); // Kazanan projeyi tutan state
+    const [juryMembers, setJuryMembers] = useState([]); // Jüri üyelerini tutan state
+    const [juryVoteCoefficient, setJuryVoteCoefficient] = useState(2); // Jüri oy katsayısı
 
     useEffect(() => {
         if (!user.name) {
             return;
         }
 
+        // Yarışmaya katılım isteği gönderiliyor
         socket.emit('joinCompetition', { competitionId, name: user.name });
-
+        // Yarışma verileri alındığında. (Eklemeler yapıldı)
         socket.on('competitionData', (data) => {
             const uniqueUsers = Array.from(new Set(data.connectedUsers.map(u => u.name)))
                 .map(name => data.connectedUsers.find(u => u.name === name));
 
+            // Yarışma verileri güncelleniyor
             setCompetition({
                 ...data,
                 connectedUsers: uniqueUsers,
+                criteria: data.criteria.map(criterion => ({
+                    ...criterion,
+                    coefficient: criterion.coefficient || 1, // Kriter katsayıları (yeni)
+                    description: criterion.description || '',
+                })),
             });
             setJuryMembers(data.juryMembers || []);
             setVotingStarted(data.votingStarted || false);
             setVotingFinished(data.votingFinished || false);
             setResultsVisible(data.resultsVisible || false);
             setJuryVoteCoefficient(data.juryVoteCoefficient || 2);
+
+            // Kazanan proje belirleniyor. Yarışma durumu için
+            if (data.resultsVisible) {
+                const winning = data.projects.reduce((max, project) => 
+                    project.averageScore > (max?.averageScore || 0) ? project : max, null);
+                setWinningProject(winning);
+            }
         });
 
         return () => {
@@ -67,6 +82,8 @@ function CompetitionPage() {
     };
 
     const toggleJuryMember = (userName) => {
+        if (votingStarted) return; // Oylama başladıysa jüri değiştirme engelleniyor
+
         const updatedJury = juryMembers.includes(userName)
             ? juryMembers.filter(jury => jury !== userName)
             : [...juryMembers, userName];
@@ -79,6 +96,21 @@ function CompetitionPage() {
         navigate('/lobby');
     };
 
+    // Yarışma durumunu gösteren mesajlar
+    const renderStatusMessage = () => {
+        if (resultsVisible) {
+            return `Sonuçlar açıklandı. Kazanan proje: ${winningProject?.name || 'Henüz kazanan yok'}`;
+        }
+        if (votingFinished) {
+            return 'Oylama sona erdi.';
+        }
+        if (votingStarted) {
+            return 'Oylama başladı.';
+        }
+        return 'Oylamanın başlatılması bekleniyor.';
+    };
+
+    // Kullanıcı adı alınmadıysa (qr veya link ile bağlananlar)
     if (!user.name) {
         return (
             <div className="container">
@@ -128,7 +160,19 @@ function CompetitionPage() {
                 </div>
             )}
 
-            <h3>Jüri Oy Katsayısı: {juryVoteCoefficient}</h3>
+            {/* Yarışma Durumu. Yeni eklendi */}
+            <div className="competition-status">
+                <h3>Durum: {renderStatusMessage()}</h3>
+            </div>
+
+            <h3>Kriterler</h3>
+            <ul>
+                {competition.criteria.map((criterion, index) => (
+                    <li key={index}>
+                        <strong>{criterion.name}</strong>: {criterion.description} (Katsayı: {criterion.coefficient})
+                    </li>
+                ))}
+            </ul>
 
             <ProjectList
                 projects={competition.projects}

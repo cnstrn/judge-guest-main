@@ -9,8 +9,8 @@ import './styles.css';
 const socket = io(`${config.backendURL}`);
 
 function VotePage() {
-    const { competitionId, projectId } = useParams(); // Get competition and project IDs from URL params
-    const location = useLocation(); // Get passed state (juryMembers and juryVoteCoefficient)
+    const { competitionId, projectId } = useParams(); // ProjectId'yi URLden alır
+    const location = useLocation(); 
     const navigate = useNavigate(); // To navigate to other pages
     const { user } = useContext(UserContext); // Get user info from context
 
@@ -66,12 +66,10 @@ function VotePage() {
     navigate(`/competition/${competitionId}`);
 };
 
-    // Show loading message if competition data is not yet available
     if (!competition) {
         return <div>Yükleniyor...</div>;
     }
 
-    // Find the project by projectId
     const project = competition.projects.find(p => p.id === projectId);
     if (!project) {
         return <div>Proje bulunamadı.</div>;
@@ -81,20 +79,22 @@ function VotePage() {
         <div className="container">
             <h2>{project.name} için Oy Verin</h2>
 
-            {/* Display a jury warning if the user is a jury member */}
+            {/* Jüri üyesi uyarısı göster */}
             {isJury && <p className="jury-info">Jüri üyesi olarak atandınız. Oylarınız {juryVoteCoefficient} katı değerindedir.</p>}
 
-            {/* Display voting options */}
+            {/* Oylama işlemi (eklemeler yapıldı) */}
             <div className="likert-container">
                 {competition.criteria.map((criterion, index) => (
                     <div key={index} className="likert-item" style={{ marginBottom: '15px' }}>
-                        <label>{criterion}: </label>
+                        <label>{criterion.name} (Katsayı: {criterion.coefficient}):</label>
+                        {/* Criterion description is now below the criterion name */}
+                        <p style={{ marginTop: '5px', fontStyle: 'italic' }}>{criterion.description}</p>
                         <div className="likert-buttons">
                             {[1, 2, 3, 4, 5].map((score) => (
                                 <button
                                     key={score}
-                                    onClick={() => handleVoteChange(criterion, score)}
-                                    className={votes[criterion] === score ? 'selected' : ''}>
+                                    onClick={() => handleVoteChange(criterion.name, score)}
+                                    className={votes[criterion.name] === score ? 'selected' : ''}>
                                     {score}
                                 </button>
                             ))}

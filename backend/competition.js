@@ -12,8 +12,6 @@ function generateCompetitionCode() {
     return crypto.randomBytes(3).toString('hex').toUpperCase();
 }
 
-
-
 function handleSocketEvents(socket, io) {
 
     socket.on('signUp', ({ name, email, password, role }) => {
@@ -89,13 +87,13 @@ function handleSocketEvents(socket, io) {
         })
     });
 
-    // Yarisma yaratma
-    socket.on('createCompetition', ({ name, date, criteria, projects, createdBy }) => {
+     // Yarisma yaratma
+     socket.on('createCompetition', ({ name, date, criteria, projects, createdBy, juryVoteCoefficient }) => {
         const competitionId = generateCompetitionCode();
         competitions[competitionId] = {
             name,
             date, 
-            criteria,
+            criteria,  // katsayılar ve acıklamalar criteria icinde
             projects: projects.map(project => ({
                 ...project,
                 totalScore: 0,
@@ -109,10 +107,9 @@ function handleSocketEvents(socket, io) {
             juryMembers: [],
             votingStarted: false,
             votingFinished: false,
-            resultsVisible: false
+            resultsVisible: false,
+            juryVoteCoefficient: juryVoteCoefficient || 2,  // default jüri katsayısı
         };
-
-        //checks.addComp(name, date, criteria, projects, createdBy);
     
         console.log(`Competition created: ${competitionId}`, competitions[competitionId]);
     
@@ -120,125 +117,132 @@ function handleSocketEvents(socket, io) {
         socket.emit('competitionCreated', competitionId);
     });
 
-   // Yarismaya katilma
-   socket.on('joinCompetition', ({ competitionId, name }) => {
-    if (competitions[competitionId]) {
-        const competition = competitions[competitionId];
+    // Yarismaya katilma
+    socket.on('joinCompetition', ({ competitionId, name }) => {
+        if (competitions[competitionId]) {
+            const competition = competitions[competitionId];
 
-        const userExists = competition.connectedUsers.some((user) => user.name === name);
-        if (!userExists) {
-            competition.connectedUsers.push({ name });
+            const userExists = competition.connectedUsers.some((user) => user.name === name);
+            if (!userExists) {
+                competition.connectedUsers.push({ name });
+            }
+
+            socket.join(competitionId);
+            io.in(competitionId).emit('competitionData', competition);
+            console.log(`User ${name} joined competition: ${competitionId}`);
+        } else {
+            socket.emit('error', 'Competition not found');
+            console.log(`Competition not found: ${competitionId}`);
         }
+    });
 
-        socket.join(competitionId);
-        io.in(competitionId).emit('competitionData', competition);
-        console.log(`User ${name} joined competition: ${competitionId}`);
-    } else {
-        socket.emit('error', 'Competition not found');
-        console.log(`Competition not found: ${competitionId}`);
-    }
-});
+    // Request Competition Data
+    socket.on('requestCompetitionData', ({ competitionId }) => {
+        const competition = competitions[competitionId];
+        if (competition) {
+            console.log(`Sending competition data for competitionId: ${competitionId}`);
+            socket.emit('competitionData', competition);
+        } else {
+            console.log(`No competition found with competitionId: ${competitionId}`);
+            socket.emit('error', 'Competition not found');
+        }
+    });
 
-// Competition data request
-socket.on('requestCompetitionData', ({ competitionId }) => {
+    // Update Jury Members
+    socket.on('updateJuryMembers', ({ competitionId, juryMembers }) => {
+        if (competitions[competitionId]) {
+            competitions[competitionId].juryMembers = juryMembers;
+            io.in(competitionId).emit('competitionData', competitions[competitionId]);
+            console.log(`Updated jury members for competition: ${competitionId}`);
+        }
+    });
+
+    // Start Voting
+    socket.on('startVoting', ({ competitionId }) => {
+        if (competitions[competitionId]) {
+            competitions[competitionId].votingStarted = true;
+            io.in(competitionId).emit('competitionData', competitions[competitionId]);
+            console.log(`Voting started for competition: ${competitionId}`);
+        }
+    });
+
+    // Finish Voting
+    socket.on('finishVoting', ({ competitionId }) => {
+        if (competitions[competitionId]) {
+            competitions[competitionId].votingFinished = true;
+            competitions[competitionId].votingStarted = false;
+            io.in(competitionId).emit('competitionData', competitions[competitionId]);
+            console.log(`Voting finished for competition: ${competitionId}`);
+        }
+    });
+
+    // Show Results
+    socket.on('showResults', ({ competitionId }) => {
+        if (competitions[competitionId]) {
+            competitions[competitionId].resultsVisible = true;
+            io.in(competitionId).emit('competitionData', competitions[competitionId]);
+            console.log(`Results made visible for competition: ${competitionId}`);
+        }
+    });
+
+    // Oyları Gönder(eklemeler yapıldı)
+socket.on('submitVotes', ({ competitionId, projectId, userName, comment, votes }) => {
     const competition = competitions[competitionId];
     if (competition) {
-        console.log(`Sending competition data for competitionId: ${competitionId}`);
-        socket.emit('competitionData', competition);
-    } else {
-        console.log(`No competition found with competitionId: ${competitionId}`);
-        socket.emit('error', 'Competition not found');
-    }
-});
+        const project = competition.projects.find(p => p.id === projectId);
+        if (project) {
+            let totalWeightedScore = 0;
+            let totalCoefficient = 0;
+            let userWeightedScore = 0;
 
-// Jury assignment
-socket.on('updateJuryMembers', ({ competitionId, juryMembers }) => {
-    if (competitions[competitionId]) {
-        competitions[competitionId].juryMembers = juryMembers;
-        io.in(competitionId).emit('competitionData', competitions[competitionId]);
-        console.log(`Updated jury members for competition: ${competitionId}`);
-    }
-});
+            // Oylar üzerinde dön ve her kriter için katsayı uygula
+            Object.entries(votes).forEach(([criterionName, score]) => {
+                const criterion = competition.criteria.find(c => c.name === criterionName);
+                const criterionCoefficient = criterion ? criterion.coefficient : 1;
+                totalWeightedScore += score * criterionCoefficient;  // Katsayı uygula
+                totalCoefficient += criterionCoefficient;  // Katsayıları topla
 
-// Oylamayı başlatma
-socket.on('startVoting', ({ competitionId }) => {
-    if (competitions[competitionId]) {
-        competitions[competitionId].votingStarted = true;
-        io.in(competitionId).emit('competitionData', competitions[competitionId]);
-        console.log(`Voting started for competition: ${competitionId}`);
-    }
-});
+                // Kullanıcının oyu için ağırlıklı puanı hesapla
+                userWeightedScore += score * criterionCoefficient;
+            });
 
-// Oylamayı bitirme
-socket.on('finishVoting', ({ competitionId }) => {
-    if (competitions[competitionId]) {
-        competitions[competitionId].votingFinished = true;
-        competitions[competitionId].votingStarted = false;
-        io.in(competitionId).emit('competitionData', competitions[competitionId]);
-        console.log(`Voting finished for competition: ${competitionId}`);
-    }
-});
+            const weightedAverageScore = totalWeightedScore / totalCoefficient;
+            const isJury = competition.juryMembers.includes(userName);
 
-// Sonuçların gosterilmesi
-socket.on('showResults', ({ competitionId }) => {
-    if (competitions[competitionId]) {
-        competitions[competitionId].resultsVisible = true;
-        io.in(competitionId).emit('competitionData', competitions[competitionId]);
-        console.log(`Results made visible for competition: ${competitionId}`);
-    }
-});
+            // Kullanıcının ağırlıklı puanını toplam katsayıya böl (kriterlerin toplam ağırlığı)
+            userWeightedScore = userWeightedScore / totalCoefficient;
 
-// Oyların submit edilmesi
-// Oyların submit edilmesi
-socket.on('submitVotes', ({ competitionId, projectId, userName, comment, votes }) => {
-const competition = competitions[competitionId];
-if (competition) {
-    const project = competition.projects.find(p => p.id === projectId);
-    if (project) {
-        // Her bir kriterden totalScore hesaplama
-        const totalScore = Object.values(votes).reduce((sum, score) => sum + score, 0);
-        const numberOfCriteria = Object.keys(votes).length;
-        const averageScore = totalScore / numberOfCriteria;
+            // Eğer kullanıcı jüri üyesiyse, jüri oyu katsayısını uygula
+            userWeightedScore = isJury ? userWeightedScore * competition.juryVoteCoefficient : userWeightedScore;
 
-        // Juri check
-        const isJury = competition.juryMembers.includes(userName);
+            // Oyu ve yorumu kaydet
+            project.votes[userName] = {
+                ...votes,
+                weightedScore: userWeightedScore,  // Kullanıcının son ağırlıklı puanını kaydet
+            };
+            if (comment) {
+                project.comments.push({ userName, comment });
+            }
 
-        const finalScore = isJury ? averageScore * competition.juryVoteCoefficient : averageScore;
+            // Proje puanını güncelle
+            project.totalScore += weightedAverageScore;
+            project.voteCount += 1;
+            project.averageScore = project.totalScore / project.voteCount;
 
-        if (isJury) {
-            console.log(`User ${userName} is a jury member. Their vote is multiplied by the jury coefficient: ${competition.juryVoteCoefficient}.`);
-        } else {
-            console.log(`User ${userName} is not a jury member. Their vote is not multiplied.`);
+            io.in(competitionId).emit('competitionData', competition);
+
+            // Proje puanı güncellemesini logla
+            console.log(`Güncellenen proje: ${projectId}, Toplam Puan: ${project.totalScore}, Oy Sayısı: ${project.voteCount}, Ortalama Puan: ${project.averageScore}`);
+
+            // Kim kaç puan verdiğini detaylarıyla logla
+            console.log(`Yarışma: ${competitionId}`);
+            console.log(`Proje: ${project.name}`);
+            console.log(`Kullanıcı: ${userName}`);
+            console.log(`Oylar:`, votes);
+            console.log(`Kullanıcı Ağırlıklı Puanı: ${userWeightedScore.toFixed(2)}`);
+            console.log('---');
         }
-
-        // Her kriter için verilen oyu yazdırma
-        console.log(`User ${userName} voted on project ${projectId} with the following votes:`);
-        Object.entries(votes).forEach(([criterion, score]) => {
-            console.log(`Criterion: ${criterion}, Vote: ${score}`);
-        });
-
-        // Kullanıcı yorumu varsa
-        if (comment) {
-            console.log(`User's comment: ${comment}`);
-        }
-
-        // Final average score
-        console.log(`Final average score for project ${projectId}: ${project.averageScore}`);
-
-        // Oyları ve yorumları projeye kaydetme
-        project.votes[userName] = votes;
-        if (comment) {
-            project.comments.push({ userName, comment });
-        }
-
-        // Proje skorunun güncellenmesi
-        project.totalScore += finalScore;
-        project.voteCount += 1;
-        project.averageScore = project.totalScore / project.voteCount;
-
-        io.in(competitionId).emit('competitionData', competition);
     }
-}
 });
 }
 
