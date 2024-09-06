@@ -185,7 +185,7 @@ function handleSocketEvents(socket, io) {
         }
     });
 
-    // Oyları Gönder(eklemeler yapıldı)
+    // Oyları Gönder(eklemeler yapıldı: son halinde kriter sayısına bölüp ortalama alıyor. Diğer yöntem commentde)
 socket.on('submitVotes', ({ competitionId, projectId, userName, comment, votes }) => {
     const competition = competitions[competitionId];
     if (competition) {
@@ -206,11 +206,19 @@ socket.on('submitVotes', ({ competitionId, projectId, userName, comment, votes }
                 userWeightedScore += score * criterionCoefficient;
             });
 
-            const weightedAverageScore = totalWeightedScore / totalCoefficient;
+            // Ağırlıklı ortalama puanı kriter ağırlığı toplamına göre hesapla (eski yöntem, yorum satırında)
+            // const weightedAverageScore = totalWeightedScore / totalCoefficient;
+
+            // Ağırlıklı ortalama puanı kriter sayısına göre hesapla (yeni yöntem)
+            const weightedAverageScore = totalWeightedScore / competition.criteria.length;
+
             const isJury = competition.juryMembers.includes(userName);
 
-            // Kullanıcının ağırlıklı puanını toplam katsayıya böl (kriterlerin toplam ağırlığı)
-            userWeightedScore = userWeightedScore / totalCoefficient;
+            // Kullanıcının ağırlıklı puanını toplam katsayıya böl (kriterlerin toplam ağırlığı, eski yöntem, yorum satırında)
+            // userWeightedScore = userWeightedScore / totalCoefficient;
+
+            // Kullanıcının ağırlıklı puanını kriter sayısına böl (yeni yöntem)
+            userWeightedScore = userWeightedScore / competition.criteria.length;
 
             // Eğer kullanıcı jüri üyesiyse, jüri oyu katsayısını uygula
             userWeightedScore = isJury ? userWeightedScore * competition.juryVoteCoefficient : userWeightedScore;
@@ -244,6 +252,7 @@ socket.on('submitVotes', ({ competitionId, projectId, userName, comment, votes }
         }
     }
 });
+
 }
 
 module.exports = {

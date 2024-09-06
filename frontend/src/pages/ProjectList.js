@@ -44,10 +44,8 @@ function ProjectList({
                                             {/* Kullanıcının verdiği ağırlıklı ortalama puanı göster */}
                                             <p>
                                                 <strong>Verdiğiniz Ağırlıklı Ortalama Puan:</strong>{' '}
-                                                {(
-                                                    project.votes[user.name].weightedScore /
-                                                    Object.keys(project.votes[user.name]).length // Kriter sayısına bölerek ortalama al
-                                                ).toFixed(2)}
+                                                
+                                                    {project.votes[user.name].weightedScore.toFixed(3) }
                                             </p>
                                         </div>
                                     ) : (

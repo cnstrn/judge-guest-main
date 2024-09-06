@@ -1,3 +1,4 @@
+// Competitionform içinde. bu kod kullanılmıyor
 import React from 'react';
 
 function CompetitionList({ projects, resultsVisible, user }) {
