@@ -185,73 +185,69 @@ function handleSocketEvents(socket, io) {
         }
     });
 
-    // Oyları Gönder(eklemeler yapıldı: son halinde kriter sayısına bölüp ortalama alıyor. Diğer yöntem commentde)
-socket.on('submitVotes', ({ competitionId, projectId, userName, comment, votes }) => {
-    const competition = competitions[competitionId];
-    if (competition) {
-        const project = competition.projects.find(p => p.id === projectId);
-        if (project) {
-            let totalWeightedScore = 0;
-            let totalCoefficient = 0;
-            let userWeightedScore = 0;
-
-            // Oylar üzerinde dön ve her kriter için katsayı uygula
-            Object.entries(votes).forEach(([criterionName, score]) => {
-                const criterion = competition.criteria.find(c => c.name === criterionName);
-                const criterionCoefficient = criterion ? criterion.coefficient : 1;
-                totalWeightedScore += score * criterionCoefficient;  // Katsayı uygula
-                totalCoefficient += criterionCoefficient;  // Katsayıları topla
-
-                // Kullanıcının oyu için ağırlıklı puanı hesapla
-                userWeightedScore += score * criterionCoefficient;
-            });
-
-            // Ağırlıklı ortalama puanı kriter ağırlığı toplamına göre hesapla (eski yöntem, yorum satırında)
-            // const weightedAverageScore = totalWeightedScore / totalCoefficient;
-
-            // Ağırlıklı ortalama puanı kriter sayısına göre hesapla (yeni yöntem)
-            const weightedAverageScore = totalWeightedScore / competition.criteria.length;
-
-            const isJury = competition.juryMembers.includes(userName);
-
-            // Kullanıcının ağırlıklı puanını toplam katsayıya böl (kriterlerin toplam ağırlığı, eski yöntem, yorum satırında)
-            // userWeightedScore = userWeightedScore / totalCoefficient;
-
-            // Kullanıcının ağırlıklı puanını kriter sayısına böl (yeni yöntem)
-            userWeightedScore = userWeightedScore / competition.criteria.length;
-
-            // Eğer kullanıcı jüri üyesiyse, jüri oyu katsayısını uygula
-            userWeightedScore = isJury ? userWeightedScore * competition.juryVoteCoefficient : userWeightedScore;
-
-            // Oyu ve yorumu kaydet
-            project.votes[userName] = {
-                ...votes,
-                weightedScore: userWeightedScore,  // Kullanıcının son ağırlıklı puanını kaydet
-            };
-            if (comment) {
-                project.comments.push({ userName, comment });
+    socket.on('submitVotes', ({ competitionId, projectId, userName, comment, votes }) => {
+        const competition = competitions[competitionId];
+        if (competition) {
+            const project = competition.projects.find(p => p.id === projectId);
+            if (project) {
+                let totalWeightedScore = 0;
+                let totalCoefficient = 0;
+                let userWeightedScore = 0;
+    
+                // Oylar üzerinde dön ve her kriter için katsayı uygula
+                Object.entries(votes).forEach(([criterionName, score]) => {
+                    const criterion = competition.criteria.find(c => c.name === criterionName);
+                    const criterionCoefficient = criterion ? criterion.coefficient : 1;
+                    totalWeightedScore += score * criterionCoefficient;  // Katsayı uygula
+                    totalCoefficient += criterionCoefficient;  // Katsayıları topla
+    
+                    // Kullanıcının oyu için ağırlıklı puanı hesapla
+                    userWeightedScore += score * criterionCoefficient;
+                });
+    
+                // Ağırlıklı ortalama puanı kriter sayısına göre hesapla
+                const weightedAverageScore = totalWeightedScore / competition.criteria.length;
+    
+                const isJury = competition.juryMembers.includes(userName);
+    
+                // Kullanıcının ağırlıklı puanını kriter sayısına böl
+                userWeightedScore = userWeightedScore / competition.criteria.length;
+    
+                // Eğer kullanıcı jüri üyesiyse, jüri oyu katsayısını uygula
+                userWeightedScore = isJury ? userWeightedScore * competition.juryVoteCoefficient : userWeightedScore;
+    
+                // Oyu ve yorumu kaydet
+                project.votes[userName] = {
+                    ...votes,
+                    weightedScore: userWeightedScore,  // Kullanıcının son ağırlıklı puanını kaydet
+                };
+    
+                // Yorum mevcutsa kaydet
+                if (comment) {
+                    project.comments.push({ userName, comment }); // Yorum ve kullanıcı adıyla beraber kaydet
+                }
+    
+                // Proje puanını güncelle
+                project.totalScore += weightedAverageScore;
+                project.voteCount += 1;
+                project.averageScore = project.totalScore / project.voteCount;
+    
+                // Güncellenen yarışma verilerini tüm kullanıcılara gönder
+                io.in(competitionId).emit('competitionData', competition);
+    
+                // Logları yazdır
+                console.log(`Yarışma: ${competitionId}`);
+                console.log(`Proje: ${project.name}`);
+                console.log(`Kullanıcı: ${userName}`);
+                console.log(`Oylar:`, votes);
+                console.log(`Kullanıcı Ağırlıklı Puanı: ${userWeightedScore.toFixed(2)}`);
+                console.log(`Yorum: ${comment || 'Yorum yok'}`);
+                console.log('---');
             }
-
-            // Proje puanını güncelle
-            project.totalScore += weightedAverageScore;
-            project.voteCount += 1;
-            project.averageScore = project.totalScore / project.voteCount;
-
-            io.in(competitionId).emit('competitionData', competition);
-
-            // Proje puanı güncellemesini logla
-            console.log(`Güncellenen proje: ${projectId}, Toplam Puan: ${project.totalScore}, Oy Sayısı: ${project.voteCount}, Ortalama Puan: ${project.averageScore}`);
-
-            // Kim kaç puan verdiğini detaylarıyla logla
-            console.log(`Yarışma: ${competitionId}`);
-            console.log(`Proje: ${project.name}`);
-            console.log(`Kullanıcı: ${userName}`);
-            console.log(`Oylar:`, votes);
-            console.log(`Kullanıcı Ağırlıklı Puanı: ${userWeightedScore.toFixed(2)}`);
-            console.log('---');
         }
-    }
-});
+    });
+    
+    
 
 }
 

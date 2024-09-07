@@ -8,6 +8,7 @@ import ProjectList from './ProjectList';
 import config from '../config';
 import './styles.css';
 
+// Oylama sonuçlarını gösterecek bileşeni ekliyoruz
 const socket = io(`${config.backendURL}`);
 
 function CompetitionPage() {
@@ -23,6 +24,7 @@ function CompetitionPage() {
     const [winningProject, setWinningProject] = useState(null); // Kazanan projeyi tutan state
     const [juryMembers, setJuryMembers] = useState([]); // Jüri üyelerini tutan state
     const [juryVoteCoefficient, setJuryVoteCoefficient] = useState(2); // Jüri oy katsayısı
+    const [votes, setVotes] = useState([]); // Oy verilerini tutan state (yeni eklendi)
 
     useEffect(() => {
         if (!user.name) {
@@ -31,7 +33,8 @@ function CompetitionPage() {
 
         // Yarışmaya katılım isteği gönderiliyor
         socket.emit('joinCompetition', { competitionId, name: user.name });
-        // Yarışma verileri alındığında. (Eklemeler yapıldı)
+
+        // Yarışma verileri alındığında (oylar da dahil), bu veriler güncelleniyor
         socket.on('competitionData', (data) => {
             const uniqueUsers = Array.from(new Set(data.connectedUsers.map(u => u.name)))
                 .map(name => data.connectedUsers.find(u => u.name === name));
@@ -42,7 +45,7 @@ function CompetitionPage() {
                 connectedUsers: uniqueUsers,
                 criteria: data.criteria.map(criterion => ({
                     ...criterion,
-                    coefficient: criterion.coefficient || 1, // Kriter katsayıları (yeni)
+                    coefficient: criterion.coefficient || 1, // Kriter katsayıları
                     description: criterion.description || '',
                 })),
             });
@@ -51,6 +54,22 @@ function CompetitionPage() {
             setVotingFinished(data.votingFinished || false);
             setResultsVisible(data.resultsVisible || false);
             setJuryVoteCoefficient(data.juryVoteCoefficient || 2);
+
+            // Oyları güncelle (yeni)
+            const newVotes = [];
+            data.projects.forEach(project => {
+                Object.entries(project.votes).forEach(([userName, voteDetails]) => {
+                    const comment = project.comments.find(comment => comment.userName === userName)?.comment || '';
+                    newVotes.push({
+                        userName, // Kullanıcı adı
+                        projectName: project.name, // Proje adı
+                        votes: voteDetails, // Oy detayları
+                        userWeightedScore: voteDetails.weightedScore, // Ağırlıklı puan
+                        comment, // Kullanıcı yorumu
+                    });
+                });
+            });
+            setVotes(newVotes); // Oylamaları state'e kaydet
 
             // Kazanan proje belirleniyor. Yarışma durumu için
             if (data.resultsVisible) {
@@ -137,6 +156,14 @@ function CompetitionPage() {
         return <div>Yarışma bulunamadı...</div>;
     }
 
+    const formatVotes = (votes) => {
+        const { weightedScore, ...voteDetails } = votes; // Extract weightedScore
+        const voteString = Object.entries(voteDetails)
+            .map(([criterion, score]) => `${criterion}: ${score}`) // Format each criterion and score
+            .join(", ");
+        return `${voteString}, Ağırlıklı Puan: ${weightedScore.toFixed(2)}`; // Append weightedScore at the end
+    };
+
     return (
         <div className="container">
             <h1>{competition.name}</h1>
@@ -160,7 +187,7 @@ function CompetitionPage() {
                 </div>
             )}
 
-            {/* Yarışma Durumu. Yeni eklendi */}
+            {/* Yarışma Durumu */}
             <div className="competition-status">
                 <h3>Durum: {renderStatusMessage()}</h3>
             </div>
@@ -191,6 +218,23 @@ function CompetitionPage() {
                 juryMembers={juryMembers}
                 toggleJuryMember={toggleJuryMember}
             />
+
+            {/* Oylama sonuçlarını sadece adminler ve üyeler görebilir */}
+            {(user.role === 'admin' || user.role === 'member') && (
+                <div className="voting-results">
+                    <h3>Oylama Sonuçları</h3>
+                    {votes.map((vote, index) => (
+                        <div key={index} className="vote-item">
+                            <p><strong>Kullanıcı:</strong> {vote.userName}</p>
+                            <p><strong>Proje:</strong> {vote.projectName}</p>
+                            <p><strong>Oylar:</strong> {formatVotes(vote.votes)}</p> 
+                            <p><strong>Kullanıcı Ağırlıklı Puanı:</strong> {vote.userWeightedScore.toFixed(2)}</p>
+                            <p><strong>Yorum:</strong> {vote.comment || 'Yorum yok'}</p>
+                            <hr />
+                        </div>
+                    ))}
+                </div>
+            )}
 
             {(user.role === 'admin' || user.role === 'member') && (
                 <div style={{ marginTop: '20px' }}>
