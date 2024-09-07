@@ -1,10 +1,11 @@
 import React, { useState, useContext, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { UserContext } from '../UserContext';
+import config from '../config';
 import './styles.css';
 
 import { io } from 'socket.io-client';
-const socket = io('http://localhost:5000');
+const socket = io(`${config.backendURL}`);
 
 function LoginPage() {
     const navigate = useNavigate();

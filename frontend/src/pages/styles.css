@@ -17,6 +17,95 @@ body, html {
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
 }
 
+.competition-container {
+    max-width: 800px; /* Container is set back to 800px */
+    margin: 20px auto;
+    padding: 20px;
+    background-color: #ffffff;
+    border-radius: 8px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+/* Form section styling */
+.competition-form {
+    width: 100%;
+    padding-bottom: 20px;
+    border-bottom: 2px solid #ddd;
+    margin-bottom: 20px;
+}
+
+/* Added criteria and projects section */
+.added-section {
+    margin-top: 20px;
+}
+
+/* Small buttons for Edit and Delete with spacing */
+.small-button {
+    background-color: #007bff;
+    color: white;
+    border: none;
+    padding: 5px 10px;
+    margin-right: 5px;
+    cursor: pointer;
+    border-radius: 4px;
+}
+
+.small-button:last-child {
+    background-color: #dc3545;
+}
+
+/* List styling */
+.added-section ul {
+    list-style-type: none;
+    padding-left: 0;
+}
+
+.added-section li {
+    margin-bottom: 15px;
+    background-color: #fff;
+    padding: 10px;
+    border-radius: 5px;
+    border: 1px solid #ddd;
+}
+
+.small-button:last-child {
+    background-color: #dc3545;
+}
+
+/* Spacing for list items */
+li {
+    margin-bottom: 15px;
+    background-color: #fff;
+    padding: 10px;
+    border-radius: 5px;
+    border: 1px solid #ddd;
+}
+
+/* Standard voting container */
+.voting-container {
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 20px;
+    background-color: #ffffff;
+    border-radius: 8px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+/* Selected button style */
+.likert-buttons button.selected {
+    background-color: #28a745;
+    color: #fff;
+}
+
+/* Likert buttons */
+.likert-buttons button {
+    margin-right: 5px;
+    padding: 10px;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+    cursor: pointer;
+}
+
 /* Header styles */
 h1, h2, h3 {
     color: #09386b; /* Updated to dark blue */
